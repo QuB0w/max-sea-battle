@@ -8,9 +8,30 @@ import { BattleScreen } from './pages/BattleScreen';
 import { GameOverScreen } from './pages/GameOverScreen';
 import { createEmptyBoard, generateRandomFleet } from './lib/board';
 import type { AiDifficulty, AppScreen, Board, GameMode, LeaderboardEntry, Ship, Statistic, UserProfile } from './types/game';
-import { getMaxUser, initMaxBridge, openInviteLink, showGameOverAd } from './lib/maxBridge';
+import { getMaxUser, initMaxBridge, shareInviteLink, showGameOverAd } from './lib/maxBridge';
 import { getHubConnection } from './lib/signalr';
 import { getHistory, getLeaderboard, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
+
+type PersistedState = {
+  screen: AppScreen;
+  mode: GameMode;
+  difficulty: AiDifficulty;
+  roomId: string;
+  isHost: boolean;
+  currentTurnUserId: string;
+  sessionId: string;
+  ships: Ship[];
+  myBoard: Board;
+  enemyBoard: Board;
+  winner: string;
+  outcome: 'win' | 'lose';
+  message: string;
+  isWaitingForOpponent: boolean;
+  enemyFleetRemaining: Record<string, number>;
+  lockedEnemyShots: string[];
+};
+
+const APP_STATE_KEY = 'sea-battle:state:v1';
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('mainMenu');
@@ -31,6 +52,7 @@ function App() {
   const [statistics, setStatistics] = useState<Statistic | null>(null);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isShooting, setIsShooting] = useState(false);
   const [lockedEnemyShots, setLockedEnemyShots] = useState<Set<string>>(new Set());
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
@@ -40,6 +62,7 @@ function App() {
     '3': 2,
     '4': 1,
   });
+  const [isStateHydrated, setIsStateHydrated] = useState(false);
 
   const inviteLink = useMemo(() => {
     const botName = import.meta.env.VITE_MAX_BOT_NAME ?? 'MySeaBattleBot';
@@ -60,9 +83,81 @@ function App() {
   }, [enemyBoard, lockedEnemyShots]);
 
   useEffect(() => {
+    try {
+      const raw = localStorage.getItem(APP_STATE_KEY);
+      if (raw) {
+        const restored = JSON.parse(raw) as PersistedState;
+        setScreen(restored.screen ?? 'mainMenu');
+        setMode(restored.mode ?? 'ai');
+        setDifficulty(restored.difficulty ?? 'Normal');
+        setRoomId(restored.roomId ?? '');
+        setIsHost(Boolean(restored.isHost));
+        setCurrentTurnUserId(restored.currentTurnUserId ?? '');
+        setSessionId(restored.sessionId ?? '');
+        setShips(Array.isArray(restored.ships) ? restored.ships : generateRandomFleet());
+        setMyBoard(Array.isArray(restored.myBoard) ? restored.myBoard : createEmptyBoard());
+        setEnemyBoard(Array.isArray(restored.enemyBoard) ? restored.enemyBoard : createEmptyBoard());
+        setWinner(restored.winner ?? '');
+        setOutcome(restored.outcome ?? 'lose');
+        setMessage(restored.message ?? 'Подготовка к бою');
+        setIsWaitingForOpponent(Boolean(restored.isWaitingForOpponent));
+        setEnemyFleetRemaining(restored.enemyFleetRemaining ?? { '1': 4, '2': 3, '3': 2, '4': 1 });
+        setLockedEnemyShots(new Set(restored.lockedEnemyShots ?? []));
+      }
+    } catch {
+      // Ignore corrupted local state and continue with defaults.
+    } finally {
+      setIsStateHydrated(true);
+    }
+
     initMaxBridge();
     setUser(getMaxUser());
   }, []);
+
+  useEffect(() => {
+    if (!isStateHydrated) {
+      return;
+    }
+
+    const snapshot: PersistedState = {
+      screen,
+      mode,
+      difficulty,
+      roomId,
+      isHost,
+      currentTurnUserId,
+      sessionId,
+      ships,
+      myBoard,
+      enemyBoard,
+      winner,
+      outcome,
+      message,
+      isWaitingForOpponent,
+      enemyFleetRemaining,
+      lockedEnemyShots: Array.from(lockedEnemyShots),
+    };
+
+    localStorage.setItem(APP_STATE_KEY, JSON.stringify(snapshot));
+  }, [
+    isStateHydrated,
+    screen,
+    mode,
+    difficulty,
+    roomId,
+    isHost,
+    currentTurnUserId,
+    sessionId,
+    ships,
+    myBoard,
+    enemyBoard,
+    winner,
+    outcome,
+    message,
+    isWaitingForOpponent,
+    enemyFleetRemaining,
+    lockedEnemyShots,
+  ]);
 
   useEffect(() => {
     getStatistics(user.id, user.name).then(setStatistics).catch(() => undefined);
@@ -357,11 +452,12 @@ function App() {
     await showGameOverAd();
   }
 
-  async function exitWithConfirmation() {
-    const ok = window.confirm('Вы точно хотите выйти? Если игра онлайн, это будет засчитано как поражение.');
-    if (!ok) {
-      return;
-    }
+  function requestExitConfirmation() {
+    setShowExitConfirm(true);
+  }
+
+  async function confirmExit() {
+    setShowExitConfirm(false);
 
     if (mode === 'online' && roomId && screen !== 'mainMenu' && screen !== 'gameOver') {
       try {
@@ -380,8 +476,14 @@ function App() {
     setMessage('Подготовка к бою');
   }
 
-  function shareInvite() {
-    openInviteLink(inviteLink);
+  async function shareInvite() {
+    const result = await shareInviteLink(inviteLink, roomId);
+    if (result === 'copied') {
+      setMessage('Ссылка скопирована. Вставьте ее в чат MAX.');
+    }
+    if (result === 'failed') {
+      setMessage('Не удалось открыть меню отправки или скопировать ссылку.');
+    }
   }
 
   async function loadLeaderboard() {
@@ -417,7 +519,7 @@ function App() {
           {screen !== 'mainMenu' && (
             <button
               type="button"
-              onClick={exitWithConfirmation}
+              onClick={requestExitConfirmation}
               className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700"
             >
               Выйти
@@ -517,6 +619,32 @@ function App() {
           />
         )}
       </div>
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-cyan-100 bg-white p-5 shadow-2xl">
+            <h3 className="font-heading text-xl text-ocean-900">Выйти из игры?</h3>
+            <p className="mt-2 text-sm text-slate-700">Если игра онлайн, выход будет засчитан как поражение.</p>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setShowExitConfirm(false)}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+              >
+                Остаться
+              </button>
+              <button
+                type="button"
+                onClick={confirmExit}
+                className="rounded-xl bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+              >
+                Выйти
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

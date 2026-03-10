@@ -16,6 +16,8 @@ declare global {
       openMaxLink?: (url: string) => void;
       expand?: () => void;
       requestFullscreen?: () => void;
+      openSharePopup?: (params: { text?: string; url?: string }) => void;
+      shareMessage?: (text: string) => void;
     };
     MaxAds?: {
       showFullscreenAd?: () => Promise<void>;
@@ -55,6 +57,40 @@ export function openInviteLink(url: string): void {
   }
 
   window.WebApp?.openLink?.(url);
+}
+
+export async function shareInviteLink(url: string, roomId: string): Promise<'shared' | 'copied' | 'failed'> {
+  const shareText = `Присоединяйся к моей комнате в Морском бое: ${roomId}`;
+
+  try {
+    if (window.WebApp?.openSharePopup) {
+      window.WebApp.openSharePopup({ text: shareText, url });
+      return 'shared';
+    }
+
+    if (window.WebApp?.shareMessage) {
+      window.WebApp.shareMessage(`${shareText}\n${url}`);
+      return 'shared';
+    }
+
+    if (navigator.share) {
+      await navigator.share({
+        title: 'Морской бой',
+        text: shareText,
+        url,
+      });
+      return 'shared';
+    }
+  } catch {
+    // Fallback to clipboard if share popup is unavailable or canceled.
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
 }
 
 export async function showGameOverAd(): Promise<void> {
