@@ -23,7 +23,11 @@ export function GameModeSelection({ onSelect, onBack }: Props) {
       >
         Онлайн с другом
       </button>
-      <button type="button" onClick={onBack} className="text-sm text-ocean-700 underline">
+      <button
+        type="button"
+        onClick={onBack}
+        className="rounded-lg border border-ocean-300 bg-ocean-50 px-3 py-1 text-sm font-semibold text-ocean-700"
+      >
         Назад
       </button>
     </div>

@@ -9,7 +9,7 @@ import { createEmptyBoard, generateRandomFleet } from './lib/board';
 import type { AiDifficulty, AppScreen, Board, GameMode, Ship, Statistic, UserProfile } from './types/game';
 import { getMaxUser, initMaxBridge, openInviteLink, showGameOverAd } from './lib/maxBridge';
 import { getHubConnection } from './lib/signalr';
-import { API_URL, getHistory, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
+import { getHistory, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('mainMenu');
@@ -391,23 +391,16 @@ function App() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#d9f0ff,#eef9ff_35%,#f8fbff)] px-4 py-6 font-body text-slate-900">
       <div className="mx-auto w-full max-w-5xl rounded-3xl border border-white/70 bg-white/60 p-4 shadow-2xl backdrop-blur-md sm:p-6">
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">MAX Mini App</p>
-            <p className="font-heading text-lg text-ocean-900">{user.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {screen !== 'mainMenu' && (
-              <button
-                type="button"
-                onClick={exitWithConfirmation}
-                className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700"
-              >
-                Выйти
-              </button>
-            )}
-            <p className="text-xs text-slate-600">API: {API_URL}</p>
-          </div>
+        <header className="mb-6 flex justify-end">
+          {screen !== 'mainMenu' && (
+            <button
+              type="button"
+              onClick={exitWithConfirmation}
+              className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700"
+            >
+              Выйти
+            </button>
+          )}
         </header>
 
         {screen === 'mainMenu' && <MainMenu onPlay={() => setScreen('gameModeSelection')} />}

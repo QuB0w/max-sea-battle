@@ -5,7 +5,7 @@ type Props = {
 export function MainMenu({ onPlay }: Props) {
   return (
     <div className="animate-fade-in space-y-6 text-center">
-      <h1 className="font-heading text-4xl text-ocean-900">MAX Sea Battle</h1>
+      <h1 className="font-heading text-4xl text-ocean-900">Морской Бой</h1>
       <p className="mx-auto max-w-md text-sm text-slate-700">
         Мини-приложение для MAX: играйте в Морской бой против ИИ или онлайн с друзьями.
       </p>

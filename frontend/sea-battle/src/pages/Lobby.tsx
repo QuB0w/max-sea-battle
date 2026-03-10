@@ -44,7 +44,11 @@ export function Lobby({ roomId, isHost, onCreateRoom, onJoinRoom, onBack, onShar
 
       <p className="text-xs text-slate-500">Роль: {isHost ? 'создатель комнаты' : 'участник'}</p>
 
-      <button type="button" onClick={onBack} className="text-sm text-ocean-700 underline">
+      <button
+        type="button"
+        onClick={onBack}
+        className="rounded-lg border border-ocean-300 bg-ocean-50 px-3 py-1 text-sm font-semibold text-ocean-700"
+      >
         Назад
       </button>
     </div>

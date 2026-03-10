@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd frontend/sea-battle && npm install && npm run build",
+  "outputDirectory": "frontend/sea-battle/dist"
+}
