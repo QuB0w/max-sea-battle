@@ -2,6 +2,7 @@ namespace Backend.Models;
 
 public record RoomCreateRequest(string UserId, string Name);
 public record JoinRoomRequest(string RoomId, string UserId, string Name);
+public record JoinRandomRoomRequest(string UserId, string Name);
 public record PlaceShipsRequest(string RoomId, string UserId, List<Ship> Ships);
 public record ShootRequest(string RoomId, string UserId, int X, int Y);
 public record EndTurnRequest(string RoomId, string UserId);
@@ -11,6 +12,7 @@ public record PlayerAiShootRequest(Guid SessionId, int X, int Y);
 
 public record RoomCreatedPayload(string RoomId, string Player, string Phase);
 public record RoomJoinedPayload(string RoomId, string Player1, string Player2, string Phase);
+public record OpenRoomPayload(string RoomId, string HostUserId, string HostName, string Phase, DateTime CreatedAtUtc);
 public record ShipsPlacedPayload(string RoomId, string UserId, bool Ready, string Phase, string CurrentTurnUserId);
 public record TurnEndedPayload(string RoomId, string CurrentTurnUserId);
 public record GameOverPayload(string RoomId, string WinnerUserId);

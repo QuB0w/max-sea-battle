@@ -60,6 +60,48 @@ public class GameService(IServiceScopeFactory scopeFactory)
         return new RoomJoinedPayload(room.RoomId, room.Player1.Name, room.Player2.Name, room.Phase.ToString());
     }
 
+    public RoomJoinedPayload JoinRandomRoom(string connectionId, JoinRandomRoomRequest request)
+    {
+        var room = _rooms.Values
+            .Where(r => r.Phase == GamePhase.ShipPlacement && r.Player2 is null && r.Player1.UserId != request.UserId)
+            .OrderBy(r => r.CreatedAtUtc)
+            .FirstOrDefault();
+
+        if (room is null)
+        {
+            throw new InvalidOperationException("No open rooms available");
+        }
+
+        room.Player2 = new RuntimePlayer
+        {
+            ConnectionId = connectionId,
+            UserId = request.UserId,
+            Name = request.Name,
+            Board = new RuntimeBoard()
+        };
+
+        return new RoomJoinedPayload(room.RoomId, room.Player1.Name, room.Player2.Name, room.Phase.ToString());
+    }
+
+    public List<OpenRoomPayload> GetOpenRooms(string? forUserId = null, int limit = 50)
+    {
+        var safeLimit = Math.Clamp(limit, 1, 100);
+
+        return _rooms.Values
+            .Where(r => r.Phase == GamePhase.ShipPlacement && r.Player2 is null)
+            .Where(r => string.IsNullOrWhiteSpace(forUserId) || r.Player1.UserId != forUserId)
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .Take(safeLimit)
+            .Select(r => new OpenRoomPayload(
+                r.RoomId,
+                r.Player1.UserId,
+                r.Player1.Name,
+                r.Phase.ToString(),
+                r.CreatedAtUtc
+            ))
+            .ToList();
+    }
+
     public ShipsPlacedPayload PlaceShips(PlaceShipsRequest request)
     {
         if (!_rooms.TryGetValue(request.RoomId, out var room))
@@ -448,6 +490,12 @@ public class GameService(IServiceScopeFactory scopeFactory)
     {
         foreach (var room in _rooms.Values)
         {
+            if (room.Player1.ConnectionId == connectionId && room.Player2 is null)
+            {
+                _rooms.TryRemove(room.RoomId, out _);
+                return null;
+            }
+
             if (room.Phase == GamePhase.Finished)
             {
                 continue;

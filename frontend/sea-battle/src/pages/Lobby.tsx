@@ -1,15 +1,31 @@
 import { useState } from 'react';
+import type { OpenRoom } from '../types/game';
 
 type Props = {
   roomId: string;
   isHost: boolean;
+  openRooms: OpenRoom[];
+  roomsLoading: boolean;
   onCreateRoom: () => void;
+  onJoinRandom: () => void;
   onJoinRoom: (roomId: string) => void;
+  onRefreshRooms: () => void;
   onBack: () => void;
   onShareInvite: () => void;
 };
 
-export function Lobby({ roomId, isHost, onCreateRoom, onJoinRoom, onBack, onShareInvite }: Props) {
+export function Lobby({
+  roomId,
+  isHost,
+  openRooms,
+  roomsLoading,
+  onCreateRoom,
+  onJoinRandom,
+  onJoinRoom,
+  onRefreshRooms,
+  onBack,
+  onShareInvite,
+}: Props) {
   const [joinCode, setJoinCode] = useState('');
 
   return (
@@ -22,12 +38,20 @@ export function Lobby({ roomId, isHost, onCreateRoom, onJoinRoom, onBack, onShar
         <p className="font-heading text-2xl text-ocean-900">{roomId || '---'}</p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         <button type="button" onClick={onCreateRoom} className="rounded-xl bg-ocean-700 px-4 py-2 text-white">
           Создать комнату
         </button>
 
-        <div className="grid grid-cols-[1fr_auto] gap-2">
+        <button
+          type="button"
+          onClick={onJoinRandom}
+          className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 font-semibold text-emerald-700"
+        >
+          Случайный соперник
+        </button>
+
+        <div className="grid grid-cols-[1fr_auto] gap-2 sm:col-span-1">
           <input
             value={joinCode}
             onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
@@ -55,6 +79,44 @@ export function Lobby({ roomId, isHost, onCreateRoom, onJoinRoom, onBack, onShar
           Поделиться приглашением
         </button>
       )}
+
+      <section className="rounded-2xl border border-cyan-200 bg-white/90 p-4 shadow">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-heading text-lg text-ocean-900">Открытые комнаты</h3>
+          <button
+            type="button"
+            onClick={onRefreshRooms}
+            className="rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-1 text-xs font-semibold text-ocean-700"
+          >
+            Обновить
+          </button>
+        </div>
+
+        {roomsLoading && <p className="text-sm text-slate-600">Загружаем список...</p>}
+
+        {!roomsLoading && openRooms.length === 0 && (
+          <p className="text-sm text-slate-600">Пока нет свободных комнат. Создайте свою и пригласите друга.</p>
+        )}
+
+        {!roomsLoading && openRooms.length > 0 && (
+          <div className="space-y-2">
+            {openRooms.map((room) => (
+              <button
+                type="button"
+                key={room.roomId}
+                onClick={() => onJoinRoom(room.roomId)}
+                className="grid w-full grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-cyan-100 bg-cyan-50/60 px-3 py-2 text-left transition hover:bg-cyan-100/70"
+              >
+                <span>
+                  <span className="block text-xs uppercase tracking-wide text-slate-500">{room.roomId}</span>
+                  <span className="block text-sm font-semibold text-ocean-900">Хост: {room.hostName}</span>
+                </span>
+                <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-ocean-700">Войти</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
       <p className="text-xs text-slate-500">Роль: {isHost ? 'создатель комнаты' : 'участник'}</p>
 

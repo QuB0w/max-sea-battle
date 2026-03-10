@@ -45,3 +45,11 @@ export type LeaderboardEntry = {
   losses: number;
   gamesPlayed: number;
 };
+
+export type OpenRoom = {
+  roomId: string;
+  hostUserId: string;
+  hostName: string;
+  phase: string;
+  createdAtUtc: string;
+};

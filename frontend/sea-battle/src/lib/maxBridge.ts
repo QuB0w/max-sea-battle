@@ -18,6 +18,7 @@ declare global {
       requestFullscreen?: () => void;
       openSharePopup?: (params: { text?: string; url?: string }) => void;
       shareMessage?: (text: string) => void;
+      switchInlineQuery?: (query: string, chatTypes?: Array<'users' | 'groups' | 'channels' | 'bots'>) => void;
     };
     MaxAds?: {
       showFullscreenAd?: () => Promise<void>;
@@ -61,10 +62,17 @@ export function openInviteLink(url: string): void {
 
 export async function shareInviteLink(url: string, roomId: string): Promise<'shared' | 'copied' | 'failed'> {
   const shareText = `Присоединяйся к моей комнате в Морском бое: ${roomId}`;
+  const inlineQueryText = `room_${roomId}`;
 
   try {
     if (window.WebApp?.openSharePopup) {
       window.WebApp.openSharePopup({ text: shareText, url });
+      return 'shared';
+    }
+
+    // MAX/Telegram-like flow: opens in-app recipient chooser and inserts query to chat.
+    if (window.WebApp?.switchInlineQuery) {
+      window.WebApp.switchInlineQuery(`${inlineQueryText} ${url}`, ['users', 'groups']);
       return 'shared';
     }
 

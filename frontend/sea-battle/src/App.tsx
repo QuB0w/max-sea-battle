@@ -7,7 +7,7 @@ import { Lobby } from './pages/Lobby';
 import { BattleScreen } from './pages/BattleScreen';
 import { GameOverScreen } from './pages/GameOverScreen';
 import { createEmptyBoard, generateRandomFleet } from './lib/board';
-import type { AiDifficulty, AppScreen, Board, GameMode, LeaderboardEntry, Ship, Statistic, UserProfile } from './types/game';
+import type { AiDifficulty, AppScreen, Board, GameMode, LeaderboardEntry, OpenRoom, Ship, Statistic, UserProfile } from './types/game';
 import { getMaxUser, initMaxBridge, shareInviteLink, showGameOverAd } from './lib/maxBridge';
 import { getHubConnection } from './lib/signalr';
 import { getHistory, getLeaderboard, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
@@ -52,6 +52,8 @@ function App() {
   const [statistics, setStatistics] = useState<Statistic | null>(null);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
+  const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isShooting, setIsShooting] = useState(false);
   const [lockedEnemyShots, setLockedEnemyShots] = useState<Set<string>>(new Set());
@@ -168,6 +170,10 @@ function App() {
     if (screen === 'leaderboard') {
       loadLeaderboard();
     }
+
+    if (screen === 'lobby') {
+      loadOpenRooms();
+    }
   }, [screen]);
 
   useEffect(() => {
@@ -183,6 +189,7 @@ function App() {
           setRoomId(payload.roomId);
           setIsHost(true);
           setMessage(`Комната ${payload.roomId} создана`);
+          loadOpenRooms();
         });
 
         connection.on('RoomJoined', (payload: { roomId: string }) => {
@@ -193,6 +200,15 @@ function App() {
           setRoomId(payload.roomId);
           setMessage(`Игрок подключился в комнату ${payload.roomId}`);
           setScreen('shipPlacement');
+          loadOpenRooms();
+        });
+
+        connection.on('OpenRoomsUpdated', (rooms: OpenRoom[]) => {
+          if (!active) {
+            return;
+          }
+
+          setOpenRooms(Array.isArray(rooms) ? rooms : []);
         });
 
         connection.on('ShipsPlaced', async (payload: { phase: string; currentTurnUserId: string }) => {
@@ -350,12 +366,36 @@ function App() {
     await connection.invoke('CreateRoom', { userId: user.id, name: user.name });
   }
 
+  async function joinRandomRoom() {
+    try {
+      const connection = await getHubConnection();
+      await connection.invoke('JoinRandomRoom', { userId: user.id, name: user.name });
+      setIsHost(false);
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : 'Нет доступных комнат для случайного матча';
+      setMessage(messageText);
+    }
+  }
+
   async function joinRoom(nextRoomId: string) {
     const connection = await getHubConnection();
     await connection.invoke('JoinRoom', { roomId: nextRoomId, userId: user.id, name: user.name });
     setRoomId(nextRoomId);
     setIsHost(false);
     setScreen('shipPlacement');
+  }
+
+  async function loadOpenRooms() {
+    setIsRoomsLoading(true);
+    try {
+      const connection = await getHubConnection();
+      const rooms = (await connection.invoke('GetOpenRooms', user.id)) as OpenRoom[];
+      setOpenRooms(Array.isArray(rooms) ? rooms : []);
+    } catch {
+      setOpenRooms([]);
+    } finally {
+      setIsRoomsLoading(false);
+    }
   }
 
   async function shoot(x: number, y: number) {
@@ -566,8 +606,12 @@ function App() {
           <Lobby
             roomId={roomId}
             isHost={isHost}
+            openRooms={openRooms}
+            roomsLoading={isRoomsLoading}
             onCreateRoom={createRoom}
+            onJoinRandom={joinRandomRoom}
             onJoinRoom={joinRoom}
+            onRefreshRooms={loadOpenRooms}
             onBack={() => setScreen('gameModeSelection')}
             onShareInvite={shareInvite}
           />

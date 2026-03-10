@@ -6,12 +6,18 @@ namespace Backend.Hubs;
 
 public class GameHub(GameService gameService) : Hub
 {
+    public List<OpenRoomPayload> GetOpenRooms(string? userId = null)
+    {
+        return gameService.GetOpenRooms(userId);
+    }
+
     public async Task CreateRoom(RoomCreateRequest request)
     {
         var payload = gameService.CreateRoom(Context.ConnectionId, request);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, payload.RoomId);
         await Clients.Caller.SendAsync("RoomCreated", payload);
+        await Clients.All.SendAsync("OpenRoomsUpdated", gameService.GetOpenRooms());
     }
 
     public async Task JoinRoom(JoinRoomRequest request)
@@ -19,6 +25,15 @@ public class GameHub(GameService gameService) : Hub
         var payload = gameService.JoinRoom(Context.ConnectionId, request);
         await Groups.AddToGroupAsync(Context.ConnectionId, request.RoomId);
         await Clients.Group(request.RoomId).SendAsync("RoomJoined", payload);
+        await Clients.All.SendAsync("OpenRoomsUpdated", gameService.GetOpenRooms());
+    }
+
+    public async Task JoinRandomRoom(JoinRandomRoomRequest request)
+    {
+        var payload = gameService.JoinRandomRoom(Context.ConnectionId, request);
+        await Groups.AddToGroupAsync(Context.ConnectionId, payload.RoomId);
+        await Clients.Group(payload.RoomId).SendAsync("RoomJoined", payload);
+        await Clients.All.SendAsync("OpenRoomsUpdated", gameService.GetOpenRooms());
     }
 
     public async Task PlaceShips(PlaceShipsRequest request)
@@ -56,6 +71,7 @@ public class GameHub(GameService gameService) : Hub
     {
         var payload = gameService.PlayerForfeit(roomId, userId);
         await Clients.Group(roomId).SendAsync("GameFinished", payload);
+        await Clients.All.SendAsync("OpenRoomsUpdated", gameService.GetOpenRooms());
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -65,6 +81,8 @@ public class GameHub(GameService gameService) : Hub
         {
             await Clients.Group(payload.RoomId).SendAsync("GameFinished", payload);
         }
+
+        await Clients.All.SendAsync("OpenRoomsUpdated", gameService.GetOpenRooms());
 
         await base.OnDisconnectedAsync(exception);
     }
