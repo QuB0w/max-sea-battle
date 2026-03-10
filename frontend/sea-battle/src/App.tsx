@@ -502,7 +502,6 @@ function App() {
             enemyBoard={enemyBoardForRender}
             enemyFleetRemaining={enemyFleetRemaining}
             message={message}
-            turnBadge={mode === 'online' ? (currentTurnUserId === user.id ? 'Ваш ход' : 'Ход соперника') : 'Вы против ИИ'}
             canShoot={mode === 'online' ? currentTurnUserId === user.id : !isShooting}
             onShoot={shoot}
           />
