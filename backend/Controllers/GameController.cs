@@ -70,4 +70,11 @@ public class GameController(GameService gameService, AiService aiService) : Cont
         var leaderboard = await gameService.GetLeaderboardAsync(limit);
         return Ok(leaderboard);
     }
+
+    [HttpGet("open-rooms")]
+    public IActionResult OpenRooms([FromQuery] string? userId = null, [FromQuery] int limit = 50)
+    {
+        var rooms = gameService.GetOpenRooms(userId, limit);
+        return Ok(rooms);
+    }
 }

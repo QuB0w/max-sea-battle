@@ -49,6 +49,11 @@ public class GameService(IServiceScopeFactory scopeFactory)
             throw new InvalidOperationException("Room is full");
         }
 
+        if (room.Player1.UserId == request.UserId)
+        {
+            throw new InvalidOperationException("You cannot join your own room from the same account");
+        }
+
         room.Player2 = new RuntimePlayer
         {
             ConnectionId = connectionId,
@@ -89,7 +94,6 @@ public class GameService(IServiceScopeFactory scopeFactory)
 
         return _rooms.Values
             .Where(r => r.Phase == GamePhase.ShipPlacement && r.Player2 is null)
-            .Where(r => string.IsNullOrWhiteSpace(forUserId) || r.Player1.UserId != forUserId)
             .OrderByDescending(r => r.CreatedAtUtc)
             .Take(safeLimit)
             .Select(r => new OpenRoomPayload(
@@ -278,7 +282,12 @@ public class GameService(IServiceScopeFactory scopeFactory)
         }
 
         var loser = room.GetPlayer(loserUserId) ?? throw new InvalidOperationException("Loser not found");
-        var winner = room.GetOpponent(loserUserId) ?? throw new InvalidOperationException("Winner not found");
+        var winner = room.GetOpponent(loserUserId);
+
+        if (winner is null)
+        {
+            throw new InvalidOperationException("Cannot forfeit without opponent in room");
+        }
 
         if (room.Phase != GamePhase.Finished)
         {

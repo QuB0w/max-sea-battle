@@ -4,6 +4,7 @@ import type { OpenRoom } from '../types/game';
 type Props = {
   roomId: string;
   isHost: boolean;
+  myUserId: string;
   openRooms: OpenRoom[];
   roomsLoading: boolean;
   onCreateRoom: () => void;
@@ -17,6 +18,7 @@ type Props = {
 export function Lobby({
   roomId,
   isHost,
+  myUserId,
   openRooms,
   roomsLoading,
   onCreateRoom,
@@ -100,20 +102,36 @@ export function Lobby({
 
         {!roomsLoading && openRooms.length > 0 && (
           <div className="space-y-2">
-            {openRooms.map((room) => (
+            {openRooms.map((room) => {
+              const isOwnRoom = room.hostUserId === myUserId;
+              return (
               <button
                 type="button"
                 key={room.roomId}
-                onClick={() => onJoinRoom(room.roomId)}
-                className="grid w-full grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-cyan-100 bg-cyan-50/60 px-3 py-2 text-left transition hover:bg-cyan-100/70"
+                onClick={() => {
+                  if (!isOwnRoom) {
+                    onJoinRoom(room.roomId);
+                  }
+                }}
+                className={`grid w-full grid-cols-[1fr_auto] items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
+                  isOwnRoom
+                    ? 'cursor-not-allowed border-amber-200 bg-amber-50/70'
+                    : 'border-cyan-100 bg-cyan-50/60 hover:bg-cyan-100/70'
+                }`}
               >
                 <span>
                   <span className="block text-xs uppercase tracking-wide text-slate-500">{room.roomId}</span>
-                  <span className="block text-sm font-semibold text-ocean-900">Хост: {room.hostName}</span>
+                  <span className="block text-sm font-semibold text-ocean-900">
+                    Хост: {room.hostName}
+                    {isOwnRoom ? ' (ваша комната)' : ''}
+                  </span>
                 </span>
-                <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-ocean-700">Войти</span>
+                <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-ocean-700">
+                  {isOwnRoom ? 'Недоступно' : 'Войти'}
+                </span>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

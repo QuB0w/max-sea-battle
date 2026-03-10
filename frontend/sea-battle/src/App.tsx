@@ -10,7 +10,7 @@ import { createEmptyBoard, generateRandomFleet } from './lib/board';
 import type { AiDifficulty, AppScreen, Board, GameMode, LeaderboardEntry, OpenRoom, Ship, Statistic, UserProfile } from './types/game';
 import { getMaxUser, initMaxBridge, shareInviteLink, showGameOverAd } from './lib/maxBridge';
 import { getHubConnection } from './lib/signalr';
-import { getHistory, getLeaderboard, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
+import { getHistory, getLeaderboard, getOnlineSnapshot, getOpenRooms, getStatistics, playerShootAi, startAiGame } from './lib/api';
 
 type PersistedState = {
   screen: AppScreen;
@@ -175,6 +175,18 @@ function App() {
       loadOpenRooms();
     }
   }, [screen]);
+
+  useEffect(() => {
+    if (screen !== 'lobby') {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      loadOpenRooms();
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [screen, user.id]);
 
   useEffect(() => {
     let active = true;
@@ -388,8 +400,7 @@ function App() {
   async function loadOpenRooms() {
     setIsRoomsLoading(true);
     try {
-      const connection = await getHubConnection();
-      const rooms = (await connection.invoke('GetOpenRooms', user.id)) as OpenRoom[];
+      const rooms = await getOpenRooms(user.id, 50);
       setOpenRooms(Array.isArray(rooms) ? rooms : []);
     } catch {
       setOpenRooms([]);
@@ -606,6 +617,7 @@ function App() {
           <Lobby
             roomId={roomId}
             isHost={isHost}
+            myUserId={user.id}
             openRooms={openRooms}
             roomsLoading={isRoomsLoading}
             onCreateRoom={createRoom}
@@ -648,6 +660,7 @@ function App() {
             enemyBoard={enemyBoardForRender}
             enemyFleetRemaining={enemyFleetRemaining}
             message={message}
+            isMyTurn={mode === 'online' ? currentTurnUserId === user.id : !isShooting}
             canShoot={mode === 'online' ? currentTurnUserId === user.id : !isShooting}
             onShoot={shoot}
           />

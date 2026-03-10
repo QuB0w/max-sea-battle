@@ -7,11 +7,16 @@ type Props = {
   enemyBoard: Board;
   enemyFleetRemaining: Record<string, number>;
   message: string;
+  isMyTurn: boolean;
   canShoot: boolean;
   onShoot: (x: number, y: number) => void;
 };
 
-export function BattleScreen({ myBoard, enemyBoard, enemyFleetRemaining, message, canShoot, onShoot }: Props) {
+export function BattleScreen({ myBoard, enemyBoard, enemyFleetRemaining, message, isMyTurn, canShoot, onShoot }: Props) {
+  const turnClasses = isMyTurn
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    : 'border-rose-200 bg-rose-50 text-rose-800';
+
   return (
     <div className="space-y-4">
       <h2 className="font-heading text-2xl text-ocean-900">BattleScreen</h2>
@@ -19,7 +24,7 @@ export function BattleScreen({ myBoard, enemyBoard, enemyFleetRemaining, message
 
       <div className="space-y-3 lg:hidden">
         <GameBoard board={myBoard} title="Ваше поле" disabled />
-        <p className="rounded-xl bg-white/90 px-3 py-2 text-center text-sm font-semibold text-ocean-900 shadow">{message}</p>
+        <p className={`rounded-xl border px-3 py-2 text-center text-sm font-semibold shadow ${turnClasses}`}>{message}</p>
         <GameBoard board={enemyBoard} title="Поле противника" onCellClick={onShoot} disabled={!canShoot} />
       </div>
 
@@ -28,7 +33,7 @@ export function BattleScreen({ myBoard, enemyBoard, enemyFleetRemaining, message
         <GameBoard board={enemyBoard} title="Поле противника" onCellClick={onShoot} disabled={!canShoot} />
       </div>
 
-      <p className="hidden rounded-xl bg-white/90 px-3 py-2 text-sm text-slate-700 shadow lg:block">{message}</p>
+      <p className={`hidden rounded-xl border px-3 py-2 text-sm font-semibold shadow lg:block ${turnClasses}`}>{message}</p>
     </div>
   );
 }
