@@ -20,23 +20,12 @@ declare global {
     MaxAds?: {
       showFullscreenAd?: () => Promise<void>;
     };
-    yaContextCb?: Array<() => void>;
-    Ya?: {
-      Context?: {
-        AdvManager?: {
-          render: (options: {
-            blockId: string;
-            renderTo?: string;
-            type?: string;
-            platform?: string;
-          }) => void;
-        };
-      };
-    };
+    MRGtag?: Array<Record<string, unknown>>;
   }
 }
 
-const YANDEX_BLOCK_ID = import.meta.env.VITE_YANDEX_RTB_BLOCK_ID as string | undefined;
+const VK_AD_CLIENT = import.meta.env.VITE_VK_AD_CLIENT ?? 'ad-1982180';
+const VK_AD_SLOT = import.meta.env.VITE_VK_AD_SLOT ?? '1982180';
 
 export function getMaxUser(): UserProfile {
   const user = window.WebApp?.initDataUnsafe?.user;
@@ -74,23 +63,69 @@ export async function showGameOverAd(): Promise<void> {
     return;
   }
 
-  if (YANDEX_BLOCK_ID) {
-    await showYandexFallbackAd(YANDEX_BLOCK_ID);
-  }
+  await showVkFallbackAd(VK_AD_CLIENT, VK_AD_SLOT);
 }
 
-async function showYandexFallbackAd(blockId: string): Promise<void> {
+async function showVkFallbackAd(adClient: string, adSlot: string): Promise<void> {
   await new Promise<void>((resolve) => {
-    window.yaContextCb = window.yaContextCb || [];
-    window.yaContextCb.push(() => {
-      window.Ya?.Context?.AdvManager?.render({
-        blockId,
-        type: 'fullscreen',
-        platform: 'touch',
-      });
-    });
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '9999';
+    overlay.style.background = 'rgba(2, 6, 23, 0.84)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.padding = '16px';
 
-    // The Yandex fullscreen call has no completion callback in this flow.
-    window.setTimeout(resolve, 1200);
+    const card = document.createElement('div');
+    card.style.width = '100%';
+    card.style.maxWidth = '280px';
+    card.style.background = '#ffffff';
+    card.style.borderRadius = '16px';
+    card.style.padding = '12px';
+    card.style.boxSizing = 'border-box';
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = 'Закрыть';
+    close.style.display = 'block';
+    close.style.margin = '0 0 10px auto';
+    close.style.border = '1px solid #e2e8f0';
+    close.style.borderRadius = '10px';
+    close.style.padding = '6px 10px';
+    close.style.background = '#f8fafc';
+    close.style.cursor = 'pointer';
+
+    const adSlotNode = document.createElement('ins');
+    adSlotNode.className = 'mrg-tag';
+    adSlotNode.style.display = 'inline-block';
+    adSlotNode.style.width = '240px';
+    adSlotNode.style.height = '400px';
+    adSlotNode.setAttribute('data-ad-client', adClient);
+    adSlotNode.setAttribute('data-ad-slot', adSlot);
+
+    const cleanup = () => {
+      overlay.remove();
+      resolve();
+    };
+
+    close.onclick = cleanup;
+    overlay.onclick = (event) => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    };
+
+    card.appendChild(close);
+    card.appendChild(adSlotNode);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    window.MRGtag = window.MRGtag || [];
+    window.MRGtag.push({});
+
+    // Safety timeout, so game flow is never blocked by ad loading issues.
+    window.setTimeout(cleanup, 10000);
   });
 }

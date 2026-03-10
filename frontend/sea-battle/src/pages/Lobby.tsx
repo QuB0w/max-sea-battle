@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 type Props = {
   roomId: string;
   isHost: boolean;
@@ -8,6 +10,8 @@ type Props = {
 };
 
 export function Lobby({ roomId, isHost, onCreateRoom, onJoinRoom, onBack, onShareInvite }: Props) {
+  const [joinCode, setJoinCode] = useState('');
+
   return (
     <div className="space-y-4">
       <h2 className="font-heading text-2xl text-ocean-900">Лобби</h2>
@@ -22,18 +26,28 @@ export function Lobby({ roomId, isHost, onCreateRoom, onJoinRoom, onBack, onShar
         <button type="button" onClick={onCreateRoom} className="rounded-xl bg-ocean-700 px-4 py-2 text-white">
           Создать комнату
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            const code = window.prompt('Введите код комнаты');
-            if (code) {
-              onJoinRoom(code.toUpperCase());
-            }
-          }}
-          className="rounded-xl border border-ocean-700 px-4 py-2 text-ocean-700"
-        >
-          Войти в комнату
-        </button>
+
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <input
+            value={joinCode}
+            onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+            placeholder="КОД КОМНАТЫ"
+            className="rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm uppercase tracking-wide text-slate-800"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!joinCode.trim()) {
+                return;
+              }
+
+              onJoinRoom(joinCode.trim().toUpperCase());
+            }}
+            className="rounded-xl border border-ocean-700 px-4 py-2 text-ocean-700"
+          >
+            Войти
+          </button>
+        </div>
       </div>
 
       {roomId && (

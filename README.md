@@ -68,7 +68,8 @@ Frontend ожидает backend по адресу `http://localhost:5035`.
 ```env
 VITE_API_URL=http://localhost:5035
 VITE_MAX_BOT_NAME=MySeaBattleBot
-VITE_YANDEX_RTB_BLOCK_ID=R-A-XXXXXXX-X
+VITE_VK_AD_CLIENT=ad-1982180
+VITE_VK_AD_SLOT=1982180
 ```
 
 ## MAX Mini App
