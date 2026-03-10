@@ -92,14 +92,30 @@ public class GameService(IServiceScopeFactory scopeFactory)
     {
         var safeLimit = Math.Clamp(limit, 1, 100);
 
-        return _rooms.Values
+        var rooms = _rooms.Values
             .Where(r => r.Phase == GamePhase.ShipPlacement && r.Player2 is null)
             .OrderByDescending(r => r.CreatedAtUtc)
             .Take(safeLimit)
+            .ToList();
+
+        var hostIds = rooms.Select(r => r.Player1.UserId).Distinct().ToList();
+        Dictionary<string, int> levelByUserId;
+
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            levelByUserId = db.Statistics
+                .Where(s => hostIds.Contains(s.UserId))
+                .Select(s => new { s.UserId, s.Level })
+                .ToDictionary(x => x.UserId, x => x.Level);
+        }
+
+        return rooms
             .Select(r => new OpenRoomPayload(
                 r.RoomId,
                 r.Player1.UserId,
                 r.Player1.Name,
+                levelByUserId.TryGetValue(r.Player1.UserId, out var level) ? level : 1,
                 r.Phase.ToString(),
                 r.CreatedAtUtc
             ))

@@ -50,6 +50,7 @@ export type OpenRoom = {
   roomId: string;
   hostUserId: string;
   hostName: string;
+  hostLevel: number;
   phase: string;
   createdAtUtc: string;
 };

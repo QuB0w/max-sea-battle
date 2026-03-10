@@ -52,6 +52,8 @@ function App() {
   const [statistics, setStatistics] = useState<Statistic | null>(null);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [playerRank, setPlayerRank] = useState<number | null>(null);
+  const [isRankLoading, setIsRankLoading] = useState(false);
   const [openRooms, setOpenRooms] = useState<OpenRoom[]>([]);
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -164,11 +166,16 @@ function App() {
   useEffect(() => {
     getStatistics(user.id, user.name).then(setStatistics).catch(() => undefined);
     getHistory(user.id).catch(() => undefined);
+    loadPlayerRank();
   }, [user.id, user.name]);
 
   useEffect(() => {
     if (screen === 'leaderboard') {
       loadLeaderboard();
+    }
+
+    if (screen === 'mainMenu') {
+      loadPlayerRank();
     }
 
     if (screen === 'lobby') {
@@ -549,6 +556,19 @@ function App() {
     }
   }
 
+  async function loadPlayerRank() {
+    setIsRankLoading(true);
+    try {
+      const entries = await getLeaderboard(100);
+      const index = entries.findIndex((entry) => entry.userId === user.id);
+      setPlayerRank(index >= 0 ? index + 1 : null);
+    } catch {
+      setPlayerRank(null);
+    } finally {
+      setIsRankLoading(false);
+    }
+  }
+
   function restart() {
     setShips(generateRandomFleet());
     setMyBoard(createEmptyBoard());
@@ -584,6 +604,8 @@ function App() {
             onLeaderboard={() => setScreen('leaderboard')}
             statistics={statistics}
             userName={user.name}
+            playerRank={playerRank}
+            isRankLoading={isRankLoading}
           />
         )}
 

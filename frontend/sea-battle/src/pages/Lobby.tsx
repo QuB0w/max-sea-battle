@@ -122,9 +122,10 @@ export function Lobby({
                 <span>
                   <span className="block text-xs uppercase tracking-wide text-slate-500">{room.roomId}</span>
                   <span className="block text-sm font-semibold text-ocean-900">
-                    Хост: {room.hostName}
+                    Имя: {room.hostName}
                     {isOwnRoom ? ' (ваша комната)' : ''}
                   </span>
+                  <span className="block text-xs text-slate-600">Уровень: {room.hostLevel ?? 1}</span>
                 </span>
                 <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-ocean-700">
                   {isOwnRoom ? 'Недоступно' : 'Войти'}
