@@ -14,8 +14,8 @@ type Props = {
 
 export function BattleScreen({ myBoard, enemyBoard, enemyFleetRemaining, message, turnBadge, canShoot, onShoot }: Props) {
   return (
-    <div className="relative space-y-4">
-      <div className="absolute right-0 top-0 z-10 rounded-xl border border-cyan-200 bg-white/95 px-3 py-2 text-right shadow">
+    <div className="space-y-4">
+      <div className="fixed right-3 top-3 z-40 rounded-xl border border-cyan-200 bg-white/95 px-3 py-2 text-right shadow backdrop-blur sm:right-6 sm:top-6">
         <p className="text-[10px] uppercase tracking-wide text-slate-500">Сейчас</p>
         <p className="text-xs font-semibold text-ocean-900">{turnBadge}</p>
       </div>

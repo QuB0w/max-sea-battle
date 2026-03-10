@@ -367,7 +367,6 @@ function App() {
       try {
         const connection = await getHubConnection();
         await connection.invoke('Surrender', roomId, user.id);
-        return;
       } catch {
         // fallback to local reset if server is unavailable
       }
@@ -377,6 +376,8 @@ function App() {
     setRoomId('');
     setCurrentTurnUserId('');
     setIsWaitingForOpponent(false);
+    setLockedEnemyShots(new Set());
+    setMessage('Подготовка к бою');
   }
 
   function shareInvite() {
