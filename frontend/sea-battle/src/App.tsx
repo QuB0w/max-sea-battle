@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MainMenu } from './pages/MainMenu';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { GameModeSelection } from './pages/GameModeSelection';
 import { ShipPlacement } from './pages/ShipPlacement';
 import { Lobby } from './pages/Lobby';
 import { BattleScreen } from './pages/BattleScreen';
 import { GameOverScreen } from './pages/GameOverScreen';
 import { createEmptyBoard, generateRandomFleet } from './lib/board';
-import type { AiDifficulty, AppScreen, Board, GameMode, Ship, Statistic, UserProfile } from './types/game';
+import type { AiDifficulty, AppScreen, Board, GameMode, LeaderboardEntry, Ship, Statistic, UserProfile } from './types/game';
 import { getMaxUser, initMaxBridge, openInviteLink, showGameOverAd } from './lib/maxBridge';
 import { getHubConnection } from './lib/signalr';
-import { getHistory, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
+import { getHistory, getLeaderboard, getOnlineSnapshot, getStatistics, playerShootAi, startAiGame } from './lib/api';
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('mainMenu');
@@ -28,6 +29,8 @@ function App() {
   const [currentTurnUserId, setCurrentTurnUserId] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [statistics, setStatistics] = useState<Statistic | null>(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [isShooting, setIsShooting] = useState(false);
   const [lockedEnemyShots, setLockedEnemyShots] = useState<Set<string>>(new Set());
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
@@ -65,6 +68,12 @@ function App() {
     getStatistics(user.id, user.name).then(setStatistics).catch(() => undefined);
     getHistory(user.id).catch(() => undefined);
   }, [user.id, user.name]);
+
+  useEffect(() => {
+    if (screen === 'leaderboard') {
+      loadLeaderboard();
+    }
+  }, [screen]);
 
   useEffect(() => {
     let active = true;
@@ -374,6 +383,18 @@ function App() {
     openInviteLink(inviteLink);
   }
 
+  async function loadLeaderboard() {
+    setIsLeaderboardLoading(true);
+    try {
+      const entries = await getLeaderboard(30);
+      setLeaderboardEntries(entries);
+    } catch {
+      setMessage('Не удалось загрузить таблицу лидеров');
+    } finally {
+      setIsLeaderboardLoading(false);
+    }
+  }
+
   function restart() {
     setShips(generateRandomFleet());
     setMyBoard(createEmptyBoard());
@@ -403,7 +424,23 @@ function App() {
           )}
         </header>
 
-        {screen === 'mainMenu' && <MainMenu onPlay={() => setScreen('gameModeSelection')} />}
+        {screen === 'mainMenu' && (
+          <MainMenu
+            onPlay={() => setScreen('gameModeSelection')}
+            onLeaderboard={() => setScreen('leaderboard')}
+            statistics={statistics}
+            userName={user.name}
+          />
+        )}
+
+        {screen === 'leaderboard' && (
+          <LeaderboardPage
+            entries={leaderboardEntries}
+            loading={isLeaderboardLoading}
+            onRefresh={loadLeaderboard}
+            onBack={() => setScreen('mainMenu')}
+          />
+        )}
 
         {screen === 'gameModeSelection' && (
           <div className="space-y-3">
@@ -464,6 +501,7 @@ function App() {
             enemyBoard={enemyBoardForRender}
             enemyFleetRemaining={enemyFleetRemaining}
             message={message}
+            turnBadge={mode === 'online' ? (currentTurnUserId === user.id ? 'Ваш ход' : 'Ход соперника') : 'Вы против ИИ'}
             canShoot={mode === 'online' ? currentTurnUserId === user.id : !isShooting}
             onShoot={shoot}
           />

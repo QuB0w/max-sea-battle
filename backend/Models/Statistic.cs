@@ -12,6 +12,8 @@ public class Statistic
     public int Wins { get; set; }
     public int Losses { get; set; }
     public int GamesPlayed { get; set; }
+    public int Experience { get; set; }
+    public int Level { get; set; } = 1;
 
     [JsonIgnore]
     public User? User { get; set; }

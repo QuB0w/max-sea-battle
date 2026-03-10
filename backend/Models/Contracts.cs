@@ -15,6 +15,7 @@ public record ShipsPlacedPayload(string RoomId, string UserId, bool Ready, strin
 public record TurnEndedPayload(string RoomId, string CurrentTurnUserId);
 public record GameOverPayload(string RoomId, string WinnerUserId);
 public record OnlineSnapshotPayload(string RoomId, string UserId, string CurrentTurnUserId, string[][] MyBoard, string[][] EnemyBoard, Dictionary<int, int> EnemyFleetRemaining);
+public record LeaderboardEntryPayload(string UserId, string Name, int Level, int Experience, int Wins, int Losses, int GamesPlayed);
 
 public class ShotResult
 {

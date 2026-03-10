@@ -39,6 +39,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+    EnsureStatisticsColumns(db);
 }
 
 if (app.Environment.IsDevelopment())
@@ -54,3 +55,24 @@ app.MapControllers();
 app.MapHub<GameHub>("/hubs/game");
 
 app.Run();
+
+static void EnsureStatisticsColumns(AppDbContext db)
+{
+    try
+    {
+        db.Database.ExecuteSqlRaw("ALTER TABLE Statistics ADD COLUMN Experience INTEGER NOT NULL DEFAULT 0;");
+    }
+    catch
+    {
+        // Column already exists.
+    }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw("ALTER TABLE Statistics ADD COLUMN Level INTEGER NOT NULL DEFAULT 1;");
+    }
+    catch
+    {
+        // Column already exists.
+    }
+}

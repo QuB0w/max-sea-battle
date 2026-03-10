@@ -31,6 +31,8 @@ export function GameOverScreen({ winner, outcome, statistics, onRestart, onMainM
         <p>Побед: {statistics?.wins ?? 0}</p>
         <p>Поражений: {statistics?.losses ?? 0}</p>
         <p>Игр: {statistics?.gamesPlayed ?? 0}</p>
+        <p>Уровень: {statistics?.level ?? 1}</p>
+        <p>Опыт: {statistics?.experience ?? 0}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

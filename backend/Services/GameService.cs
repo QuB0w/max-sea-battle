@@ -8,6 +8,8 @@ namespace Backend.Services;
 public class GameService(IServiceScopeFactory scopeFactory)
 {
     private static readonly int[] RequiredFleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
+    private const int WinXpGain = 25;
+    private const int LossXpPenalty = 10;
 
     private readonly ConcurrentDictionary<string, OnlineRoom> _rooms = new();
     private readonly ConcurrentDictionary<Guid, SinglePlayerSession> _aiSessions = new();
@@ -272,12 +274,37 @@ public class GameService(IServiceScopeFactory scopeFactory)
         var stats = await db.Statistics.FirstOrDefaultAsync(s => s.UserId == userId);
         if (stats is null)
         {
-            stats = new Statistic { UserId = userId };
+            stats = new Statistic { UserId = userId, Level = 1, Experience = 0 };
             db.Statistics.Add(stats);
             await db.SaveChangesAsync();
         }
 
         return stats;
+    }
+
+    public async Task<List<LeaderboardEntryPayload>> GetLeaderboardAsync(int limit = 50)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var safeLimit = Math.Clamp(limit, 1, 100);
+
+        return await db.Statistics
+            .Include(s => s.User)
+            .OrderByDescending(s => s.Level)
+            .ThenByDescending(s => s.Experience)
+            .ThenByDescending(s => s.Wins)
+            .Take(safeLimit)
+            .Select(s => new LeaderboardEntryPayload(
+                s.UserId,
+                s.User != null ? s.User.Name : "Player",
+                s.Level,
+                s.Experience,
+                s.Wins,
+                s.Losses,
+                s.GamesPlayed
+            ))
+            .ToListAsync();
     }
 
     public object StartAiGame(StartAiGameRequest request)
@@ -734,7 +761,7 @@ public class GameService(IServiceScopeFactory scopeFactory)
         var stats = db.Statistics.FirstOrDefault(s => s.UserId == userId);
         if (stats is null)
         {
-            stats = new Statistic { UserId = userId };
+            stats = new Statistic { UserId = userId, Level = 1, Experience = 0 };
             db.Statistics.Add(stats);
         }
 
@@ -742,11 +769,20 @@ public class GameService(IServiceScopeFactory scopeFactory)
         if (win)
         {
             stats.Wins += 1;
+            stats.Experience += WinXpGain;
         }
         else
         {
             stats.Losses += 1;
+            stats.Experience = Math.Max(0, stats.Experience - LossXpPenalty);
         }
+
+        stats.Level = CalculateLevel(stats.Experience);
+    }
+
+    private static int CalculateLevel(int experience)
+    {
+        return Math.Max(1, (experience / 100) + 1);
     }
 
     private static string GenerateRoomCode()

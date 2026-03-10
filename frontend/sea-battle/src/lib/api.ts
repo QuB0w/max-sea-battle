@@ -1,4 +1,4 @@
-import type { AiDifficulty, Ship, Statistic } from '../types/game';
+import type { AiDifficulty, LeaderboardEntry, Ship, Statistic } from '../types/game';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5035';
 
@@ -58,6 +58,15 @@ export async function getOnlineSnapshot(roomId: string, userId: string) {
 
   if (!response.ok) {
     throw new Error('Cannot load online snapshot');
+  }
+
+  return response.json();
+}
+
+export async function getLeaderboard(limit = 20): Promise<LeaderboardEntry[]> {
+  const response = await fetch(`${API_URL}/api/game/leaderboard?limit=${limit}`);
+  if (!response.ok) {
+    throw new Error('Cannot load leaderboard');
   }
 
   return response.json();

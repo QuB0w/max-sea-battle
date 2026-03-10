@@ -63,4 +63,11 @@ public class GameController(GameService gameService, AiService aiService) : Cont
         var statistics = await gameService.GetStatisticsAsync(userId, name);
         return Ok(statistics);
     }
+
+    [HttpGet("leaderboard")]
+    public async Task<IActionResult> Leaderboard([FromQuery] int limit = 20)
+    {
+        var leaderboard = await gameService.GetLeaderboardAsync(limit);
+        return Ok(leaderboard);
+    }
 }

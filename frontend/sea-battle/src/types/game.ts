@@ -15,6 +15,7 @@ export type GameMode = 'ai' | 'online';
 
 export type AppScreen =
   | 'mainMenu'
+  | 'leaderboard'
   | 'gameModeSelection'
   | 'lobby'
   | 'shipPlacement'
@@ -28,6 +29,18 @@ export type UserProfile = {
 
 export type Statistic = {
   userId: string;
+  wins: number;
+  losses: number;
+  gamesPlayed: number;
+  experience: number;
+  level: number;
+};
+
+export type LeaderboardEntry = {
+  userId: string;
+  name: string;
+  level: number;
+  experience: number;
   wins: number;
   losses: number;
   gamesPlayed: number;
